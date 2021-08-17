@@ -14,6 +14,11 @@ thiserror = "1.0"
 chrono = "0.4"
 arc_map = "0.1.0"
 
+[dependencies.rusqlite]
+version = "0.25.1"
+features = ["bundled"]
+
+
 [profile.dev]
 debug = 0
 

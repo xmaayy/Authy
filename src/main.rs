@@ -6,6 +6,7 @@ use std::convert::Infallible;
 use std::sync::Arc;
 use warp::{reject, reply, Filter, Rejection, Reply};
 
+mod user_database;
 mod auth;
 mod error;
 
@@ -50,12 +51,11 @@ async fn main() {
         .and(with_auth(Role::Admin))
         .and_then(admin_handler);
 
-    let refresh_route = waro::path!("refresh")
-        .and(warp::post())
-        .and(with_auth(Role::User))
-        .and(with_users(users.clone()))
-        .and(warp::body::json())
-        .and_then(token
+    //let refresh_route = warp::path!("refresh")
+    //    .and(warp::post())
+    //    .and(with_auth(Role::User))
+    //    .and(with_users(users.clone()))
+    //    .and_then(login_handler);
 
     let routes = login_route
         .or(user_route)
