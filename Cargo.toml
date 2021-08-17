@@ -1,0 +1,24 @@
+[package]
+name = "warp_auth"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+jsonwebtoken = "=7.2"
+tokio = { version = "0.2", features = ["macros", "rt-threaded", "sync", "time"] }
+warp = "0.2"
+serde = {version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+chrono = "0.4"
+arc_map = "0.1.0"
+
+[profile.dev]
+debug = 0
+
+[profile.test]
+debug = 0
+
+[profile.release]
+panic = 'abort'
