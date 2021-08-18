@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
 use warp::{reject, reply, Filter, Rejection, Reply};
+use argon2::{self, Config};
 
 mod user_database;
 mod auth;
@@ -43,8 +44,8 @@ async fn main() {
         .and(warp::body::json())
         .and_then(login_handler);
 
-    let user_route = warp::path!("user")
-        .and(with_auth(Role::User))
+    let user_route = warp::path!("refresh")
+        .and(with_auth(Role::Refresh))
         .and_then(user_handler);
 
     let admin_route = warp::path!("admin")
@@ -69,32 +70,14 @@ fn with_users(users: Users) -> impl Filter<Extract = (Users,), Error = Infallibl
     warp::any().map(move || users.clone())
 }
 
-pub async fn login_handler(users: Users, body: LoginRequest) -> WebResult<impl Reply> {
-    match users
-        .iter()
-        .find(|(_uid, user)| user.email == body.email && user.pw == body.pw)
-    {
-        Some((uid, user)) => {
-            let token = auth::create_jwt(&uid, &Role::from_str(&user.role))
-                .map_err(|e| reject::custom(e))?;
-            Ok(reply::json(&LoginResponse { token }))
-        }
-        None => Err(reject::custom(WrongCredentialsError)),
-    }
-}
-
-
 pub async fn refresh_handler(users: Users, body: LoginRequest) -> WebResult<impl Reply> {
-    // This function should validate that a refresh token (not a login token) is valid
-    // and if it is, then create a new login and refresh token for the user that made
-    // the request.
     match users
         .iter()
         .find(|(_uid, user)| user.email == body.email && user.pw == body.pw)
     {
         Some((uid, user)) => {
-            let token = auth::create_jwt(&uid, &Role::from_str(&user.role))
-                .map_err(|e| reject::custom(e))?;
+            let refresh_token = auth::create_jwt(&uid, Role::Refresh)).map_err(|e| reject::custom(e))?;
+            let access_token = auth::create_jwt(&uid, Role::Access)).map_err(|e| reject::custom(e))?; 
             Ok(reply::json(&LoginResponse { token }))
         }
         None => Err(reject::custom(WrongCredentialsError)),

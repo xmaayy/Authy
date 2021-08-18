@@ -2,18 +2,28 @@ use rusqlite::NO_PARAMS;
 use rusqlite::{Connection, Result};
 use std::collections::HashMap;
 
+
 #[derive(Debug)]
-struct Cat {
-    name: String,
-    color: String,
+struct UserRecord {
+    userId: String,
+    email: String,
+    saltedPass: String,
 }
 
-fn main() -> Result<()> {
+fn initialize() -> Connection() {
+
     let conn = Connection::open_in_memory()?;
 
-    let mut cat_colors = HashMap::new();
-    cat_colors.insert(String::from("Blue"), vec!["Tigger", "Sammy"]);
-    cat_colors.insert(String::from("Black"), vec!["Oreo", "Biscuit"]);
+}
+
+
+fn make_user(email: String, password: String) -> Result<()> {
+
+    /// 
+    ///
+    ///
+    ///
+
 
     for (color, catnames) in &cat_colors {
         conn.execute(

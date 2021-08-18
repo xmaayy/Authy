@@ -12,17 +12,24 @@ use warp::{
 const BEARER: &str = "Bearer ";
 const JWT_SECRET: &[u8] = b"secret";
 
+
+/// The idea behind a refresh and a login token is that if
+/// we have a very short expiry time on the login token then
+/// even if an attacker somehow exfiltrates it, it wont be
+/// useful for long. Furthermore, we can hide the refresh
+/// token in an HttpCookie so its not as prone to being
+/// grabbed. 
 #[derive(Clone, PartialEq)]
 pub enum Role {
-    User,
-    Admin,
+    Refresh, // This role is used only the get a new login token
+    Access // This role is used to access the site normally
 }
 
 impl Role {
     pub fn from_str(role: &str) -> Role {
         match role {
-            "Admin" => Role::Admin,
-            _ => Role::User,
+            "Refresh" => Role::Refresh,
+            "Access" => Role::Access
         }
     }
 }
@@ -30,8 +37,8 @@ impl Role {
 impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Role::User => write!(f, "User"),
-            Role::Admin => write!(f, "Admin"),
+            Role::Access => write!(f, "Access"),
+            Role::Refresh => write!(f, "Refresh"),
         }
     }
 }
@@ -44,16 +51,37 @@ struct Claims {
 }
 
 pub fn with_auth(role: Role) -> impl Filter<Extract = (String,), Error = Rejection> + Clone {
+    // A simple function that calls wraps a warp filter and calls
+    // the authentication function with a specific role. Not totally
+    // sure how we can pull in the warp headers here, but I guess its
+    // because this is a 'Filter' so it has access to a lot of stuff
+    // from warp included by default.
     headers_cloned()
         .map(move |headers: HeaderMap<HeaderValue>| (role.clone(), headers))
         .and_then(authorize)
 }
 
 pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
-    let expiration = Utc::now()
-        .checked_add_signed(chrono::Duration::seconds(60))
-        .expect("valid timestamp")
-        .timestamp();
+    if (role == Role::Refresh){
+        // Refresh tokens have limited permissions but have a 14
+        // day window in which they're active. As soon as one is used,
+        // though, it becomes invalid along with the previous login token
+        let expiration = Utc::now()
+            .checked_add_signed(chrono::Duration::seconds(60*60*24*14))
+            .expect("valid timestamp")
+            .timestamp();
+    } else { 
+        // Any other token (namely login/access tokens) have approx
+        // 30 minutes of being valid. This gives a user enough time
+        // to get through a single sessions without their client
+        // having to reauthentiate, but they will need to request
+        // a new access token using their refresh token the next time
+        // they visit.
+        let expiration = Utc::now()
+            .checked_add_signed(chrono::Duration::seconds(60*30))
+            .expect("valid timestamp")
+            .timestamp();
+    }
 
     let claims = Claims {
         sub: uid.to_owned(),
@@ -75,7 +103,7 @@ async fn authorize((role, headers): (Role, HeaderMap<HeaderValue>)) -> WebResult
             )
             .map_err(|_| reject::custom(Error::JWTTokenError))?;
 
-            if role == Role::Admin && Role::from_str(&decoded.claims.role) != Role::Admin {
+            if role == Role::Refresh && Role::from_str(&decoded.claims.role) != Role::Refresh {
                 return Err(reject::custom(Error::NoPermissionError));
             }
 
