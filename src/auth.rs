@@ -22,14 +22,16 @@ const JWT_SECRET: &[u8] = b"secret";
 #[derive(Clone, PartialEq)]
 pub enum Role {
     Refresh, // This role is used only the get a new login token
-    Access // This role is used to access the site normally
+    Access, // This role is used to access the site normally
+    Unauth
 }
 
 impl Role {
     pub fn from_str(role: &str) -> Role {
         match role {
             "Refresh" => Role::Refresh,
-            "Access" => Role::Access
+            "Access" => Role::Access,
+            _ => Role::Unauth
         }
     }
 }
@@ -38,7 +40,8 @@ impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Role::Access => write!(f, "Access"),
-            Role::Refresh => write!(f, "Refresh"),
+            Role::Refresh => write!(f, "Refresh"), 
+            Role::Unauth => write!(f, "Invalid")
         }
     }
 }
@@ -62,11 +65,12 @@ pub fn with_auth(role: Role) -> impl Filter<Extract = (String,), Error = Rejecti
 }
 
 pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
-    if (role == Role::Refresh){
+    let expiration: i64;
+    if (role == &Role::Refresh){
         // Refresh tokens have limited permissions but have a 14
         // day window in which they're active. As soon as one is used,
         // though, it becomes invalid along with the previous login token
-        let expiration = Utc::now()
+        expiration = Utc::now()
             .checked_add_signed(chrono::Duration::seconds(60*60*24*14))
             .expect("valid timestamp")
             .timestamp();
@@ -77,7 +81,7 @@ pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
         // having to reauthentiate, but they will need to request
         // a new access token using their refresh token the next time
         // they visit.
-        let expiration = Utc::now()
+        expiration = Utc::now()
             .checked_add_signed(chrono::Duration::seconds(60*30))
             .expect("valid timestamp")
             .timestamp();

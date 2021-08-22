@@ -1400,6 +1400,7 @@ dependencies = [
  "arc_map",
  "chrono",
  "jsonwebtoken",
+ "rand 0.8.4",
  "rusqlite",
  "rust-argon2",
  "serde",
