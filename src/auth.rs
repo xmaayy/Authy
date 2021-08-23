@@ -12,18 +12,17 @@ use warp::{
 const BEARER: &str = "Bearer ";
 const JWT_SECRET: &[u8] = b"secret";
 
-
 /// The idea behind a refresh and a login token is that if
 /// we have a very short expiry time on the login token then
 /// even if an attacker somehow exfiltrates it, it wont be
 /// useful for long. Furthermore, we can hide the refresh
 /// token in an HttpCookie so its not as prone to being
-/// grabbed. 
+/// grabbed.
 #[derive(Clone, PartialEq)]
 pub enum Role {
     Refresh, // This role is used only the get a new login token
-    Access, // This role is used to access the site normally
-    Unauth
+    Access,  // This role is used to access the site normally
+    Unauth,
 }
 
 impl Role {
@@ -31,7 +30,7 @@ impl Role {
         match role {
             "Refresh" => Role::Refresh,
             "Access" => Role::Access,
-            _ => Role::Unauth
+            _ => Role::Unauth,
         }
     }
 }
@@ -40,8 +39,8 @@ impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Role::Access => write!(f, "Access"),
-            Role::Refresh => write!(f, "Refresh"), 
-            Role::Unauth => write!(f, "Invalid")
+            Role::Refresh => write!(f, "Refresh"),
+            Role::Unauth => write!(f, "Invalid"),
         }
     }
 }
@@ -66,15 +65,15 @@ pub fn with_auth(role: Role) -> impl Filter<Extract = (String,), Error = Rejecti
 
 pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
     let expiration: i64;
-    if (role == &Role::Refresh){
+    if (role == &Role::Refresh) {
         // Refresh tokens have limited permissions but have a 14
         // day window in which they're active. As soon as one is used,
         // though, it becomes invalid along with the previous login token
         expiration = Utc::now()
-            .checked_add_signed(chrono::Duration::seconds(60*60*24*14))
+            .checked_add_signed(chrono::Duration::seconds(60 * 60 * 24 * 14))
             .expect("valid timestamp")
             .timestamp();
-    } else { 
+    } else {
         // Any other token (namely login/access tokens) have approx
         // 30 minutes of being valid. This gives a user enough time
         // to get through a single sessions without their client
@@ -82,7 +81,7 @@ pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
         // a new access token using their refresh token the next time
         // they visit.
         expiration = Utc::now()
-            .checked_add_signed(chrono::Duration::seconds(60*30))
+            .checked_add_signed(chrono::Duration::seconds(60 * 30))
             .expect("valid timestamp")
             .timestamp();
     }

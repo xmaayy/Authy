@@ -17,6 +17,11 @@ pub enum Error {
     InvalidAuthHeaderError,
     #[error("no permission")]
     NoPermissionError,
+    #[error("Email Already Existed")]
+    UserExistsError,
+    #[error("No clue what happened here...")]
+    Unknown,
+
 }
 
 #[derive(Serialize, Debug)]
