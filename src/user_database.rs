@@ -1,5 +1,4 @@
-
-use crate::{error::Error};
+use crate::error::Error;
 use crate::Result as StdResult;
 use rusqlite::Connection;
 use rusqlite::Result;
@@ -8,13 +7,11 @@ use std::collections::HashMap;
 use argon2::{self, Config};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use warp::{
-    reject, Filter, Rejection,
-};
+use warp::{reject, Filter, Rejection};
 
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct UserRecord {
+    id: u64,
     email: String,
     password: String,
     access_token: String,
@@ -89,7 +86,7 @@ pub fn create_user(email: String, password: String) -> StdResult<String> {
                     if err.extended_code == 2067 {
                         return Err(Error::UserExistsError);
                         //println!("Bad email (I think) {:?} {:?}", err, newstr);
-                    } else { 
+                    } else {
                         println!("Haven't dealt with this error yet {:?} {:?}", err, newstr);
                     }
                 }
@@ -118,23 +115,114 @@ pub fn create_user(email: String, password: String) -> StdResult<String> {
     }
 }
 
+pub fn password_login(email: String, password: String) -> Result<String> {
+    // TODO Shift all of the error reporting from rusqlite errors
+    // to normal ones (too lazy rn)
+    let conn = initialize_users();
+    let mut matched_user: Option<UserRecord> = None;
+    match conn {
+        Ok(good_conn) => {
+            let res: Result<UserRecord, rusqlite::Error> = good_conn.query_row_and_then(
+                "SELECT u.id, u.email, u.password
+                 FROM users u
+                 WHERE u.email = (?);",
+                [&email],
+                |row| {
+                    Ok(UserRecord {
+                        id: row.get(0)?,
+                        email: row.get(1)?,
+                        password: row.get(2)?,
+                        access_token: String::from(""),
+                        refresh_token: String::from(""),
+                    })
+                    
+                },
+            );
+
+            match res {
+                Ok(user) => {
+                    // Handling a user being matched
+                    println!("Record: {:?}", user);
+                    matched_user = Some(user.clone());
+                }
+                Err(err) => {
+                    // Handling the million cases where a user doesn't get matched
+                    return Err(err);
+                }
+            }
+
+        }
+        Err(error) => {
+            println!("Error: {}", error);
+            return Err(error);
+        }
+    }
+
+    match matched_user {
+        Some(user) => {
+            let matches = argon2::verify_encoded(&user.password, &password.clone().into_bytes()).unwrap();
+            println!("PW: {:?}\nArgon String: {:?}\nMatched: {:?}", password, user.password, matches);
+            if matches {
+                Ok(String::from(user.id.to_string()))
+            } else {
+                Ok(String::from("Bad password"))
+            }
+        },
+        None => Ok(String::from("Dunno")),
+    }
+}
+
+
+pub fn update_users_tokens(user_id: u64) -> Result<(String, String)> {
+    let conn = initialize_users();
+
+    match conn {
+        Ok(good_conn) => {
+            let access_token = auth::create_jwt(user_id, Role::access);
+            let refresh_token = auth::create_jwt(user_id, Role::refresh);
+           match good_conn.execute(
+                "INSERT INTO tokens t (access_token, refresh_token)
+                WHERE t.user_id = (?1)
+                values (?2, ?3)",
+                &[&user_id, &access_token, &refresh_token],
+            ) {
+                Ok(updated) => {return Ok((access_token, refresh_token));},
+                Err(rusqlite::Error::SqliteFailure(err, newstr)) => {
+                    if err.extended_code == 2067 {
+                        return Err(Error::UserExistsError);
+                        //println!("Bad email (I think) {:?} {:?}", err, newstr);
+                    } else {
+                        println!("Haven't dealt with this error yet {:?} {:?}", err, newstr);
+                    }
+                }
+                Err(err) => println!("update failed: {:?}", err),
+            }
+        Err(error) => {
+            println!("Error: {}", error);
+        }
+    }
+    Ok(())
+}
+
+
 pub fn list_users() -> Result<()> {
     let conn = initialize_users();
 
     match conn {
         Ok(good_conn) => {
             let mut stmt = good_conn.prepare(
-                "SELECT u.email, u.password, t.access_token, t.refresh_token FROM tokens t
+                "SELECT u.id, u.email, u.password, t.access_token, t.refresh_token FROM tokens t
                  INNER JOIN users u
                  ON u.id = t.user_id;",
             )?;
 
             let res = stmt.query_map([], |row| {
                 Ok(UserRecord {
-                    email: row.get(0)?,
-                    password: row.get(1)?,
-                    access_token: row.get(2)?,
-                    refresh_token: row.get(3)?,
+                    id: row.get(0)?,
+                    email: row.get(1)?,
+                    password: row.get(2)?,
+                    access_token: row.get(3)?,
+                    refresh_token: row.get(4)?,
                 })
             });
 
@@ -151,6 +239,5 @@ pub fn list_users() -> Result<()> {
             println!("Error: {}", error);
         }
     }
-
     Ok(())
 }

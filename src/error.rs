@@ -21,7 +21,6 @@ pub enum Error {
     UserExistsError,
     #[error("No clue what happened here...")]
     Unknown,
-
 }
 
 #[derive(Serialize, Debug)]

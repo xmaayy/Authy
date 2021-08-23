@@ -24,7 +24,7 @@ pub struct User {
     pub role: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct LoginRequest {
     pub email: String,
     pub pw: String,
@@ -45,26 +45,25 @@ async fn main() {
         .and(warp::body::json())
         .and_then(create_user_handler);
 
-    let refresh_route = warp::path!("list").and(warp::get()).and_then(list_handler);
+    let list_route = warp::path!("list").and(warp::get()).and_then(list_handler);
 
     let login_route = warp::path!("login")
         .and(warp::post())
-        .and(with_users(users.clone()))
         .and(warp::body::json())
-        .and_then(refresh_handler);
+        .and_then(login_handler);
 
     //let user_route = warp::path!("refresh")
+    //    .and(warp::post())
     //    .and(with_auth(Role::Refresh))
     //    .and_then(());
 
-    //let refresh_route = warp::path!("refresh")
-    //    .and(warp::post())
-    //    .and(with_auth(Role::User))
-    //    .and(with_users(users.clone()))
-    //    .and_then(login_handler);
+    let refresh_route = warp::path!("refresh")
+        .and(with_auth(Role::Refresh))
+        .and_then(refresh_handler);
 
     let routes = login_route
         .or(refresh_route)
+        .or(list_route)
         .or(create_user_route)
         .recover(error::handle_rejection);
 
@@ -75,13 +74,25 @@ fn with_users(users: Users) -> impl Filter<Extract = (Users,), Error = Infallibl
     warp::any().map(move || users.clone())
 }
 
+fn password_auth(
+    body: LoginRequest,
+) -> impl Filter<Extract = (String,), Error = Infallible> + Clone {
+    warp::any().map(move || {
+        user_database::password_login(body.clone().email, body.clone().pw)
+            .unwrap()
+            .clone()
+    })
+}
+
 pub async fn create_user_handler(body: LoginRequest) -> WebResult<impl Reply> {
-    match user_database::create_user(body.email, body.pw){
+    match user_database::create_user(body.email, body.pw) {
         Ok(uid) => {
             println!("Created user with UID {:?}", uid);
             // IMPLEMENT ACTUALLY USING TOKENS NOW
         }
-        Err(custom_err) => {return Err(reject::custom(custom_err));}
+        Err(custom_err) => {
+            return Err(reject::custom(custom_err));
+        }
     }
 
     Ok(format!("'access':'aksjdljas', 'refresh':'asdasd'"))
@@ -92,42 +103,23 @@ pub async fn list_handler() -> WebResult<impl Reply> {
     Ok(format!("Printed"))
 }
 
-pub async fn login_handler(users: Users, body: LoginRequest) -> WebResult<impl Reply> {
-    match users
-        .iter()
-        .find(|(_uid, user)| user.email == body.email && user.pw == body.pw)
-    {
-        Some((uid, user)) => {
-            let refresh_token =
-                auth::create_jwt(&uid, &Role::Refresh).map_err(|e| reject::custom(e))?;
-            let access_token =
-                auth::create_jwt(&uid, &Role::Access).map_err(|e| reject::custom(e))?;
-            Ok(reply::json(&LoginResponse {
-                refresh_token,
-                access_token,
-            }))
-        }
-        None => Err(reject::custom(WrongCredentialsError)),
-    }
+pub async fn login_handler(body: LoginRequest) -> WebResult<impl Reply> {
+    let uid = user_database::password_login(body.clone().email, body.clone().pw)
+        .unwrap()
+        .clone();
+
+    Ok(uid)
 }
 
-pub async fn refresh_handler(users: Users, body: LoginRequest) -> WebResult<impl Reply> {
-    match users
-        .iter()
-        .find(|(_uid, user)| user.email == body.email && user.pw == body.pw)
-    {
-        Some((uid, user)) => {
-            let refresh_token =
-                auth::create_jwt(&uid, &Role::Refresh).map_err(|e| reject::custom(e))?;
-            let access_token =
-                auth::create_jwt(&uid, &Role::Access).map_err(|e| reject::custom(e))?;
-            Ok(reply::json(&LoginResponse {
-                refresh_token,
-                access_token,
-            }))
-        }
-        None => Err(reject::custom(WrongCredentialsError)),
-    }
+pub async fn refresh_handler(uid: String) -> WebResult<impl Reply> {
+    let refresh_token =
+        auth::create_jwt(&uid, &Role::Refresh).map_err(|e| reject::custom(e))?;
+    let access_token =
+        auth::create_jwt(&uid, &Role::Access).map_err(|e| reject::custom(e))?;
+    Ok(reply::json(&LoginResponse {
+        refresh_token,
+        access_token,
+    }))
 }
 
 pub async fn user_handler(uid: String) -> WebResult<impl Reply> {
