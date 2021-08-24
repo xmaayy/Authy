@@ -104,11 +104,18 @@ pub async fn list_handler() -> WebResult<impl Reply> {
 }
 
 pub async fn login_handler(body: LoginRequest) -> WebResult<impl Reply> {
-    let uid = user_database::password_login(body.clone().email, body.clone().pw)
+    let uid: String = user_database::password_login(body.clone().email, body.clone().pw)
         .unwrap()
         .clone();
-
-    Ok(uid)
+    println!("UID: {:?}", uid);
+    let refresh_token =
+        auth::create_jwt(&uid, &Role::Refresh).map_err(|e| reject::custom(e))?;
+    let access_token =
+        auth::create_jwt(&uid, &Role::Access).map_err(|e| reject::custom(e))?;
+    Ok(reply::json(&LoginResponse {
+        refresh_token,
+        access_token,
+    }))
 }
 
 pub async fn refresh_handler(uid: String) -> WebResult<impl Reply> {

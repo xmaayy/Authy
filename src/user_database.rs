@@ -173,38 +173,6 @@ pub fn password_login(email: String, password: String) -> Result<String> {
 }
 
 
-pub fn update_users_tokens(user_id: u64) -> Result<(String, String)> {
-    let conn = initialize_users();
-
-    match conn {
-        Ok(good_conn) => {
-            let access_token = auth::create_jwt(user_id, Role::access);
-            let refresh_token = auth::create_jwt(user_id, Role::refresh);
-           match good_conn.execute(
-                "INSERT INTO tokens t (access_token, refresh_token)
-                WHERE t.user_id = (?1)
-                values (?2, ?3)",
-                &[&user_id, &access_token, &refresh_token],
-            ) {
-                Ok(updated) => {return Ok((access_token, refresh_token));},
-                Err(rusqlite::Error::SqliteFailure(err, newstr)) => {
-                    if err.extended_code == 2067 {
-                        return Err(Error::UserExistsError);
-                        //println!("Bad email (I think) {:?} {:?}", err, newstr);
-                    } else {
-                        println!("Haven't dealt with this error yet {:?} {:?}", err, newstr);
-                    }
-                }
-                Err(err) => println!("update failed: {:?}", err),
-            }
-        Err(error) => {
-            println!("Error: {}", error);
-        }
-    }
-    Ok(())
-}
-
-
 pub fn list_users() -> Result<()> {
     let conn = initialize_users();
 
