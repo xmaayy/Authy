@@ -49,7 +49,7 @@ async fn main() {
 
     let login_route = warp::path!("login")
         .and(warp::post())
-        .and(warp::body::json())
+        .and(password_auth())
         .and_then(login_handler);
 
     //let user_route = warp::path!("refresh")
@@ -74,15 +74,17 @@ fn with_users(users: Users) -> impl Filter<Extract = (Users,), Error = Infallibl
     warp::any().map(move || users.clone())
 }
 
-fn password_auth(
-    body: LoginRequest,
-) -> impl Filter<Extract = (String,), Error = Infallible> + Clone {
-    warp::any().map(move || {
-        user_database::password_login(body.clone().email, body.clone().pw)
-            .unwrap()
-            .clone()
-    })
+fn password_auth() -> impl Filter<Extract = (String,), Error = Rejection> + Clone {
+    warp::body::content_length_limit(1024 * 32)
+        .and(warp::body::json())
+        .and_then(|body: LoginRequest| async move {
+            match user_database::password_login(body.clone().email, body.clone().pw) {
+                Ok(uid) => Ok(uid),
+                Err(err) => Err(reject::custom(error::Error::NoPermissionError)),
+            }
+        })
 }
+
 
 pub async fn create_user_handler(body: LoginRequest) -> WebResult<impl Reply> {
     match user_database::create_user(body.email, body.pw) {
@@ -103,59 +105,27 @@ pub async fn list_handler() -> WebResult<impl Reply> {
     Ok(format!("Printed"))
 }
 
-pub async fn login_handler(body: LoginRequest) -> WebResult<impl Reply> {
-    let uid: String = user_database::password_login(body.clone().email, body.clone().pw)
-        .unwrap()
-        .clone();
+/// Called from the /login endpoint with a username and password in the json payload,
+/// this endpoint will create a new access and refresh token for the client.
+pub async fn login_handler(uid: String) -> WebResult<impl Reply> {
     println!("UID: {:?}", uid);
-    let refresh_token =
-        auth::create_jwt(&uid, &Role::Refresh).map_err(|e| reject::custom(e))?;
-    let access_token =
-        auth::create_jwt(&uid, &Role::Access).map_err(|e| reject::custom(e))?;
+    let refresh_token = auth::create_jwt(&uid, &Role::Refresh).map_err(|e| reject::custom(e))?;
+    let access_token = auth::create_jwt(&uid, &Role::Access).map_err(|e| reject::custom(e))?;
     Ok(reply::json(&LoginResponse {
         refresh_token,
         access_token,
     }))
 }
 
+/// Called from the /refresh endpoint with your refresh bearer token. When called with
+/// the proper authorization it will return a new set of access and refresh tokens which
+/// are valid for the configured time period.
 pub async fn refresh_handler(uid: String) -> WebResult<impl Reply> {
-    let refresh_token =
-        auth::create_jwt(&uid, &Role::Refresh).map_err(|e| reject::custom(e))?;
-    let access_token =
-        auth::create_jwt(&uid, &Role::Access).map_err(|e| reject::custom(e))?;
+    let refresh_token = auth::create_jwt(&uid, &Role::Refresh).map_err(|e| reject::custom(e))?;
+    let access_token = auth::create_jwt(&uid, &Role::Access).map_err(|e| reject::custom(e))?;
     Ok(reply::json(&LoginResponse {
         refresh_token,
         access_token,
     }))
 }
 
-pub async fn user_handler(uid: String) -> WebResult<impl Reply> {
-    Ok(format!("Hello User {}", uid))
-}
-
-pub async fn admin_handler(uid: String) -> WebResult<impl Reply> {
-    Ok(format!("Hello Admin {}", uid))
-}
-
-fn init_users() -> HashMap<String, User> {
-    let mut map = HashMap::new();
-    map.insert(
-        String::from("1"),
-        User {
-            uid: String::from("1"),
-            email: String::from("user@userland.com"),
-            pw: String::from("1234"),
-            role: String::from("User"),
-        },
-    );
-    map.insert(
-        String::from("2"),
-        User {
-            uid: String::from("2"),
-            email: String::from("admin@adminaty.com"),
-            pw: String::from("4321"),
-            role: String::from("Admin"),
-        },
-    );
-    map
-}

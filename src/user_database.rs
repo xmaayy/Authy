@@ -135,7 +135,6 @@ pub fn password_login(email: String, password: String) -> Result<String> {
                         access_token: String::from(""),
                         refresh_token: String::from(""),
                     })
-                    
                 },
             );
 
@@ -150,7 +149,6 @@ pub fn password_login(email: String, password: String) -> Result<String> {
                     return Err(err);
                 }
             }
-
         }
         Err(error) => {
             println!("Error: {}", error);
@@ -160,18 +158,21 @@ pub fn password_login(email: String, password: String) -> Result<String> {
 
     match matched_user {
         Some(user) => {
-            let matches = argon2::verify_encoded(&user.password, &password.clone().into_bytes()).unwrap();
-            println!("PW: {:?}\nArgon String: {:?}\nMatched: {:?}", password, user.password, matches);
+            let matches =
+                argon2::verify_encoded(&user.password, &password.clone().into_bytes()).unwrap();
+            println!(
+                "PW: {:?}\nArgon String: {:?}\nMatched: {:?}",
+                password, user.password, matches
+            );
             if matches {
                 Ok(String::from(user.id.to_string()))
             } else {
                 Ok(String::from("Bad password"))
             }
-        },
+        }
         None => Ok(String::from("Dunno")),
     }
 }
-
 
 pub fn list_users() -> Result<()> {
     let conn = initialize_users();
