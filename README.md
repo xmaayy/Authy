@@ -1,5 +1,4 @@
 # Authy
-# NOT DONE (WHY ARE YOU STARRING THIS)
 A rust authentication server
 
 
