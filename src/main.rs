@@ -38,7 +38,6 @@ pub struct LoginResponse {
     pub access_token: String,
 }
 
-
 /// An access request is made to the server when a client recieves
 /// a request from a user to access a resource. Right now there is
 /// no RBAC implemented, but this is where you would put the resource
@@ -71,7 +70,7 @@ async fn main() {
     let refresh_route = warp::path!("refresh")
         .and(with_auth(Role::Refresh))
         .and_then(refresh_handler);
- 
+
     let routes = login_route
         .or(access_auth_route)
         .or(refresh_route)
@@ -98,13 +97,13 @@ fn password_auth() -> impl Filter<Extract = (String,), Error = Rejection> + Clon
 }
 
 ///
-pub async fn validate_user_access(uid:String, body: AccessRequest) -> WebResult<impl Reply> {
+pub async fn validate_user_access(uid: String, body: AccessRequest) -> WebResult<impl Reply> {
     // We really dont need to allow much more than this for a small
     // authorization request
-            match uid == body.uid {
-                true => Ok(uid),
-                false => Err(reject::custom(error::Error::NoPermissionError)),
-            }
+    match uid == body.uid {
+        true => Ok(uid),
+        false => Err(reject::custom(error::Error::NoPermissionError)),
+    }
 }
 
 pub async fn create_user_handler(body: LoginRequest) -> WebResult<impl Reply> {
@@ -149,4 +148,3 @@ pub async fn refresh_handler(uid: String) -> WebResult<impl Reply> {
         access_token,
     }))
 }
-
