@@ -30,16 +30,26 @@ pub struct LoginRequest {
     pub pw: String,
 }
 
+/// This is what is sent back to a user / client when they authenticate
+/// with a username and password or with a valid refresh token.
 #[derive(Serialize)]
 pub struct LoginResponse {
     pub refresh_token: String,
     pub access_token: String,
 }
 
+
+/// An access request is made to the server when a client recieves
+/// a request from a user to access a resource. Right now there is
+/// no RBAC implemented, but this is where you would put the resource
+/// identifier if that becomes a requirement
+#[derive(Deserialize, Clone)]
+pub struct AccessRequest {
+    pub uid: String,
+}
+
 #[tokio::main]
 async fn main() {
-    let users = Arc::new(init_users());
-
     let create_user_route = warp::path!("create")
         .and(warp::post())
         .and(warp::body::json())
@@ -47,21 +57,23 @@ async fn main() {
 
     let list_route = warp::path!("list").and(warp::get()).and_then(list_handler);
 
+    let access_auth_route = warp::path!("access")
+        .and(warp::post())
+        .and(with_auth(Role::Access))
+        .and(warp::body::json())
+        .and_then(validate_user_access);
+
     let login_route = warp::path!("login")
         .and(warp::post())
         .and(password_auth())
         .and_then(login_handler);
 
-    //let user_route = warp::path!("refresh")
-    //    .and(warp::post())
-    //    .and(with_auth(Role::Refresh))
-    //    .and_then(());
-
     let refresh_route = warp::path!("refresh")
         .and(with_auth(Role::Refresh))
         .and_then(refresh_handler);
-
+ 
     let routes = login_route
+        .or(access_auth_route)
         .or(refresh_route)
         .or(list_route)
         .or(create_user_route)
@@ -85,6 +97,15 @@ fn password_auth() -> impl Filter<Extract = (String,), Error = Rejection> + Clon
         })
 }
 
+///
+pub async fn validate_user_access(uid:String, body: AccessRequest) -> WebResult<impl Reply> {
+    // We really dont need to allow much more than this for a small
+    // authorization request
+            match uid == body.uid {
+                true => Ok(uid),
+                false => Err(reject::custom(error::Error::NoPermissionError)),
+            }
+}
 
 pub async fn create_user_handler(body: LoginRequest) -> WebResult<impl Reply> {
     match user_database::create_user(body.email, body.pw) {

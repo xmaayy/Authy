@@ -53,3 +53,17 @@ Running 20s test @ http://localhost:8000/refresh
 Requests/sec:  14217.98
 Transfer/sec:      7.38MB
 ```
+
+### Access Request
+You can validate >16k access requests in a single second. Again, if you're anywhere near
+this you should be using something that has a non-hobby developer behind it.
+```
+Running 20s test @ http://localhost:8000/access
+  20 threads and 20 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.20ms  476.45us  16.70ms   73.54%
+    Req/Sec   840.45     62.50     1.91k    82.25%
+  335235 requests in 20.10s, 37.41MB read
+Requests/sec:  16678.69
+Transfer/sec:      1.86MB
+```

@@ -102,6 +102,9 @@ async fn authorize((role, headers): (Role, HeaderMap<HeaderValue>)) -> WebResult
             let decoded = decode::<Claims>(
                 &jwt,
                 &DecodingKey::from_secret(JWT_SECRET),
+                // This is really important. We want to make sure that we're not acceping an
+                // alternative validation algorithm from within the JWT because then we open
+                // ourselves up to the alg::None scenario
                 &Validation::new(Algorithm::HS512),
             )
             .map_err(|_| reject::custom(Error::JWTTokenError))?;
