@@ -17,10 +17,14 @@ pub enum Error {
     InvalidAuthHeaderError,
     #[error("no permission")]
     NoPermissionError,
-    #[error("Email Already Existed")]
+    #[error("email already exists")]
     UserExistsError,
-    #[error("No clue what happened here...")]
-    Unknown,
+    #[error("bad password")]
+    BadPasswordError,
+    #[error("database operation error")]
+    DatabaseOperationError,
+    #[error("unhandled error {message:?}")]
+    Unknown {message: String},
 }
 
 #[derive(Serialize, Debug)]

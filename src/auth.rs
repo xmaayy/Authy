@@ -65,7 +65,7 @@ pub fn with_auth(role: Role) -> impl Filter<Extract = (String,), Error = Rejecti
 
 pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
     let expiration: i64;
-    if (role == &Role::Refresh) {
+    if role == &Role::Refresh {
         // Refresh tokens have limited permissions but have a 14
         // day window in which they're active. As soon as one is used,
         // though, it becomes invalid along with the previous login token
@@ -91,6 +91,7 @@ pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
         role: role.to_string(),
         exp: expiration as usize,
     };
+
     let header = Header::new(Algorithm::HS512);
     encode(&header, &claims, &EncodingKey::from_secret(JWT_SECRET))
         .map_err(|_| Error::JWTTokenCreationError)
