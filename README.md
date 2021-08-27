@@ -1,5 +1,7 @@
 # Authy
-A rust authentication server
+A rust authentication server. Security wise its probably not the best, so keep everything internal. Much better than storing user passwords in a normal database though.
+
+You would need to hit google-level traffic to exceed the bounds of what this server can handle (the following are based on the benchmarks from my old laptop): If you run this at full tilt for a month you would be able to sign up 100M new users. It can also support almost 100 million concurrent users (Assuming everyone is getting a new refresh token every 30 minutes). The real bottleneck I guess is the /access route which can only support 60K accesses per second.  
 
 
 ## Speed tests
@@ -11,17 +13,17 @@ the password library (Argon2) uses the difficulty of computing its password hash
 of protection. It can be reconfigured in the argon config section.
 
 ### User creation
-You can create over 300 new users per second
+You can create almost 40 new users per second
 ```
 Running 20s test @ http://localhost:8000/create
   20 threads and 20 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency    58.24ms   18.76ms 150.77ms   71.47%
-    Req/Sec    17.16      5.96    40.00     56.91%
-  6870 requests in 20.04s, 1.17MB read
-  Non-2xx or 3xx responses: 6870
-Requests/sec:    342.89
-Transfer/sec:     59.60KB
+    Latency   487.52ms  320.71ms   1.91s    81.71%
+    Req/Sec     2.60      2.28    10.00     75.00%
+  778 requests in 20.05s, 119.28KB read
+  Socket errors: connect 0, read 0, write 0, timeout 14
+Requests/sec:     38.81
+Transfer/sec:      5.95KB
 ```
 ### Login
 You can have 330 people log in FOR THE FIRST TIME. Subsequent logins should use the
