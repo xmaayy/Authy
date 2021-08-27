@@ -24,7 +24,7 @@ pub enum Error {
     #[error("database operation error")]
     DatabaseOperationError,
     #[error("unhandled error {message:?}")]
-    Unknown {message: String},
+    Unknown { message: String },
 }
 
 #[derive(Serialize, Debug)]
