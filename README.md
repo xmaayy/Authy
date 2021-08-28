@@ -1,5 +1,5 @@
 # Authy
-(Available as a docker container [here](https://hub.docker.com/repository/docker/xmaayy/authy/general))
+(Available as a docker container [here](https://hub.docker.com/r/xmaayy/authy))
 
 
 A rust authentication server. Security wise its probably not the best, so keep everything internal. Much better than storing user passwords in a normal database though.
