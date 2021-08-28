@@ -91,8 +91,12 @@ pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
     };
 
     let header = Header::new(Algorithm::HS512);
-    encode(&header, &claims, &EncodingKey::from_secret(&super::JWT_SECRET))
-        .map_err(|_| Error::JWTTokenCreationError)
+    encode(
+        &header,
+        &claims,
+        &EncodingKey::from_secret(&super::JWT_SECRET),
+    )
+    .map_err(|_| Error::JWTTokenCreationError)
 }
 
 async fn authorize((role, headers): (Role, HeaderMap<HeaderValue>)) -> WebResult<String> {

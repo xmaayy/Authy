@@ -1,7 +1,7 @@
 use auth::{with_auth, Role};
-use warp::{reject, reply, Filter, Rejection, Reply};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+use warp::{reject, reply, Filter, Rejection, Reply};
 
 #[macro_use]
 extern crate lazy_static;
@@ -18,7 +18,7 @@ type WebResult<T> = std::result::Result<T, Rejection>;
 // users will get logged out whenever you do a server
 // restart. But, it also means that if your secret token
 // is ever exposed, you can just fix it by restarting the
-// container :)
+// container because lazy statics are created at runtime
 lazy_static! {
     static ref JWT_SECRET: Vec<u8> = thread_rng().sample_iter(&Alphanumeric).take(32).collect();
 }

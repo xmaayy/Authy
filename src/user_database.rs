@@ -1,11 +1,11 @@
 use crate::error::Error;
 use crate::Result as StdResult;
-use rusqlite::Connection;
-use rusqlite::Result;
-//use crate::Result;
 use argon2::{self, Config};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+use rusqlite::Connection;
+use rusqlite::Result;
+use std::fs;
 
 #[derive(Debug, Clone)]
 struct UserRecord {
@@ -16,8 +16,15 @@ struct UserRecord {
     refresh_token: String,
 }
 
-pub fn initialize_users() -> Result<Connection> {
-    let conn = Connection::open("users.db")?;
+pub fn initialize_users() -> StdResult<Connection> {
+    // Creating the folder for the database, make sure you add this as a volume
+    // in docker if you want the database to persist
+    fs::create_dir_all("database").expect("Couldnt create database folder");
+    // creating the database in the folder we just made
+    let conn: Connection = Connection::open("database/users.db").expect("Failed to open database file");
+
+    // This is a really ugly statement because of how I did the error handling,
+    // but really all we're doing here is creating the user table
     conn.execute(
         "create table if not exists users (
              id integer primary key,
@@ -25,7 +32,9 @@ pub fn initialize_users() -> Result<Connection> {
              password text not null
          )",
         [],
-    )?;
+    ).expect("Couldnt create user table");
+
+    // Same here but for tokens
     conn.execute(
         "create table if not exists tokens (
              user_id integer not null references users(id),
@@ -33,7 +42,8 @@ pub fn initialize_users() -> Result<Connection> {
              refresh_token text
          )",
         [],
-    )?;
+    ).expect("Couldnt create token table");
+
     Ok(conn)
 }
 
