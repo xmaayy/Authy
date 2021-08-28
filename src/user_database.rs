@@ -79,7 +79,7 @@ pub fn create_user(email: String, password: String) -> StdResult<String> {
     // Adding the user to the DB
     match good_conn.execute(
         "INSERT INTO users (email, password) values (?1, ?2)",
-        &[&salt.clone(), &secure_pass],
+        &[&email.clone(), &secure_pass],
     ) {
         Ok(_) => println!("Created user entry for {}", email),
         Err(rusqlite::Error::SqliteFailure(err, _)) => {

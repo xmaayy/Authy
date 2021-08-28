@@ -79,17 +79,17 @@ pub async fn validate_user_access(
 }
 
 pub async fn create_user_handler(body: models::LoginRequest) -> WebResult<impl Reply> {
-    match user_database::create_user(body.email, body.pw) {
+    let uid: String = match user_database::create_user(body.email, body.pw) {
         Ok(uid) => {
             println!("Created user with UID {:?}", uid);
-            // IMPLEMENT ACTUALLY USING TOKENS NOW
-        }
+            uid
+        },
         Err(custom_err) => {
             return Err(reject::custom(custom_err));
-        }
-    }
+        },
+    };
 
-    Ok(format!("'access':'aksjdljas', 'refresh':'asdasd'"))
+    Ok(format!("Success, new uid = {:?}", uid))
 }
 
 /// Called from the /login endpoint with a username and password in the json payload,
