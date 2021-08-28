@@ -1,4 +1,7 @@
 # Authy
+(Available as a docker container [here](https://hub.docker.com/repository/docker/xmaayy/authy/general))
+
+
 A rust authentication server. Security wise its probably not the best, so keep everything internal. Much better than storing user passwords in a normal database though.
 
 You would need to hit google-level traffic to exceed the bounds of what this server can handle (the following are based on the benchmarks from my old laptop): If you run this at full tilt for a month you would be able to sign up 100M new users. It can also support almost 100 million concurrent users (Assuming everyone is getting a new refresh token every 30 minutes). The real bottleneck I guess is the /access route which can only support 60K accesses per second.  
