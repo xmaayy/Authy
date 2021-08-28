@@ -16,7 +16,7 @@ the password library (Argon2) uses the difficulty of computing its password hash
 of protection. It can be reconfigured in the argon config section.
 
 ### User creation
-You can create almost 40 new users per second
+You can create almost 40 new users per second. Which, if you max it out for a month, comes up to 108M users. Please dont use this if you're expecting 108M users.
 ```
 Running 20s test @ http://localhost:8000/create
   20 threads and 20 connections
