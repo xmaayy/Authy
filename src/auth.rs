@@ -10,8 +10,6 @@ use warp::{
 };
 
 const BEARER: &str = "Bearer ";
-const JWT_SECRET: &[u8] = b"secret";
-
 /// The idea behind a refresh and a login token is that if
 /// we have a very short expiry time on the login token then
 /// even if an attacker somehow exfiltrates it, it wont be
@@ -93,7 +91,7 @@ pub fn create_jwt(uid: &str, role: &Role) -> Result<String> {
     };
 
     let header = Header::new(Algorithm::HS512);
-    encode(&header, &claims, &EncodingKey::from_secret(JWT_SECRET))
+    encode(&header, &claims, &EncodingKey::from_secret(&super::JWT_SECRET))
         .map_err(|_| Error::JWTTokenCreationError)
 }
 
@@ -102,7 +100,7 @@ async fn authorize((role, headers): (Role, HeaderMap<HeaderValue>)) -> WebResult
         Ok(jwt) => {
             let decoded = decode::<Claims>(
                 &jwt,
-                &DecodingKey::from_secret(JWT_SECRET),
+                &DecodingKey::from_secret(&super::JWT_SECRET),
                 // This is really important. We want to make sure that we're not acceping an
                 // alternative validation algorithm from within the JWT because then we open
                 // ourselves up to the alg::None scenario

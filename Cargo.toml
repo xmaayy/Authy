@@ -1,9 +1,8 @@
 [package]
-name = "warp_auth"
+name = "authy"
 version = "0.1.0"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 jsonwebtoken = "=7.2"
 tokio = { version = "0.2", features = ["macros", "rt-threaded", "sync", "time"] }
@@ -15,6 +14,7 @@ chrono = "0.4"
 arc_map = "0.1.0"
 rand = "0.8.4"
 rust-argon2 = "0.8"
+lazy_static = "1.4.0"
 
 [dependencies.rusqlite]
 version = "0.25.1"

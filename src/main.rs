@@ -1,5 +1,10 @@
 use auth::{with_auth, Role};
 use warp::{reject, reply, Filter, Rejection, Reply};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+
+#[macro_use]
+extern crate lazy_static;
 
 mod auth;
 mod error;
@@ -8,6 +13,15 @@ mod user_database;
 
 type Result<T> = std::result::Result<T, error::Error>;
 type WebResult<T> = std::result::Result<T, Rejection>;
+
+// This only affects the signing of tokens, so your
+// users will get logged out whenever you do a server
+// restart. But, it also means that if your secret token
+// is ever exposed, you can just fix it by restarting the
+// container :)
+lazy_static! {
+    static ref JWT_SECRET: Vec<u8> = thread_rng().sample_iter(&Alphanumeric).take(32).collect();
+}
 
 #[tokio::main]
 async fn main() {
@@ -36,8 +50,8 @@ async fn main() {
         .or(refresh_route)
         .or(create_user_route)
         .recover(error::handle_rejection);
-
-    warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
+    println!("Starting authentication server on 0.0.0.0:8000");
+    warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
 }
 
 fn password_auth() -> impl Filter<Extract = (String,), Error = Rejection> + Clone {
