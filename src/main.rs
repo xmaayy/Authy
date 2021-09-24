@@ -50,6 +50,7 @@ async fn main() {
         .or(refresh_route)
         .or(create_user_route)
         .recover(error::handle_rejection);
+
     println!("Starting authentication server on 0.0.0.0:8000");
     warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
 }
@@ -70,8 +71,6 @@ pub async fn validate_user_access(
     uid: String,
     body: models::AccessRequest,
 ) -> WebResult<impl Reply> {
-    // We really dont need to allow much more than this for a small
-    // authorization request
     match uid == body.uid {
         true => Ok(uid),
         false => Err(reject::custom(error::Error::NoPermissionError)),
