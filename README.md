@@ -1,4 +1,5 @@
 # Authy
+Will be further creating a reverse proxy for services according to [BeyondCorp](https://cloud.google.com/beyondcorp/)
 (Available as a docker container [here](https://hub.docker.com/r/xmaayy/authy))
 
 
